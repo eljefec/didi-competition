@@ -143,15 +143,18 @@ class Obs(object):
         self.yaw = rotation[2]
         self._oriented_bbox = None  # for caching
 
+    def get_bbox_noncached(self):
+        bbox = lwh_to_box(self.l, self.w, self.h)
+        # calc 3D bound box in capture vehicle oriented coordinates
+        rot_mat = np.array([
+            [np.cos(self.yaw), -np.sin(self.yaw), 0.0],
+            [np.sin(self.yaw), np.cos(self.yaw), 0.0],
+            [0.0, 0.0, 1.0]])
+        return np.dot(rot_mat, bbox) + np.tile(self.position, (8, 1)).T
+
     def get_bbox(self):
         if self._oriented_bbox is None:
-            bbox = lwh_to_box(self.l, self.w, self.h)
-            # calc 3D bound box in capture vehicle oriented coordinates
-            rot_mat = np.array([
-                [np.cos(self.yaw), -np.sin(self.yaw), 0.0],
-                [np.sin(self.yaw), np.cos(self.yaw), 0.0],
-                [0.0, 0.0, 1.0]])
-            self._oriented_bbox = np.dot(rot_mat, bbox) + np.tile(self.position, (8, 1)).T
+            self._oriented_bbox = self.get_bbox_noncached()
         return self._oriented_bbox
 
     def get_sphere(self):
